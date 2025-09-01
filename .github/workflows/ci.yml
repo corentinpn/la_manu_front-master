@@ -1,4 +1,4 @@
-name: CI Infrastructure
+name: CI Infrastructure complète
 
 on:
   push:
@@ -7,42 +7,68 @@ on:
       - "terraform/**"
       - "la_manu_front/**"
   pull_request:
+    paths:
+      - "ansible/**"
+      - "terraform/**"
+      - "la_manu_front/**"
 
 jobs:
   full-ci:
-    name: Vérifications Ansible + Terraform + Frontend
-    runs-on: ubuntu-latest
+    name: Test complet Ansible + Terraform + Jest + Docker
+    runs-on: self-hosted
 
     steps:
-      - name: 🔄 Checkout du dépôt
+      - name: Checkout du dépôt
         uses: actions/checkout@v3
 
-      - name: 🛠 Installer outils
+      - name: Installer Ansible, Terraform, Node.js et Docker
         run: |
           sudo apt update
           sudo apt install -y ansible terraform npm docker.io
           sudo systemctl start docker
+          sudo usermod -aG docker $USER || true
 
-      # ✅ Ansible — Syntax Check + Dry-run
-      - name: Vérification Ansible
+      - name: Check syntaxe Ansible
+        working-directory: ansible
+        run: ansible-playbook -i hosts site.yml --syntax-check
+
+      - name: Dry-run Ansible (--check)
+        working-directory: ansible
+        run: ansible-playbook -i hosts site.yml --check --diff
+
+      - name: Init + Plan Terraform global
+        working-directory: terraform
         run: |
-          ansible-playbook ansible/site.yml --syntax-check
-          ansible-playbook ansible/site.yml --check
+          terraform init -input=false
+          terraform validate
+          terraform plan -input=false
 
-      # 🔍 Terraform — Init + Validate + Plan
-      - name: Vérification Terraform
+      - name: Vérification plan VM Ubuntu
+        working-directory: terraform2112
         run: |
-          terraform -chdir=terraform init -input=false
-          terraform -chdir=terraform validate
-          terraform -chdir=terraform plan -input=false
+          terraform init -input=false
+          terraform validate
+          terraform plan -input=false -target=virtualbox_vm.ubuntu_vm
 
-      # 🧪 Jest — Tests frontend
-      - name: Tests unitaires frontend
-        run: |
-          cd la_manu_front
-          npm install
-          npm run test -- --ci
+      - name: Install dépendances front
+        working-directory: la_manu_front
+        run: npm install
 
-      # 🐳 Docker — Build image frontend
-      - name: Build image Docker frontend
-        run: docker build -t la_manu_front:test la_manu_front
+      - name: Lancer les tests Jest
+        working-directory: la_manu_front
+        run: npm run test -- --ci
+
+      - name: Build image Docker Front
+        working-directory: la_manu_front
+        run: docker build -t la_manu_front:test .
+
+  create_simple_vm:
+    name: Création VM Debian
+    runs-on: self-hosted
+
+    steps:
+      - name: Cloner le dépôt
+        uses: actions/checkout@v3
+
+      - name: Créer la VM Debian
+        run: bash scripts/create_vm.sh
