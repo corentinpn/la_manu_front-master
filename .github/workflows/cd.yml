@@ -12,10 +12,10 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: 🔄 Checkout
+      - name: 🔄 Checkout du dépôt
         uses: actions/checkout@v3
 
-      - name: 🔐 Déchiffrer clé SSH
+      - name: 🔐 Déchiffrer la clé SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
@@ -25,5 +25,5 @@ jobs:
       - name: 🛠 Installer Ansible
         run: sudo apt update && sudo apt install -y ansible
 
-      - name: 🚀 Lancer le playbook
+      - name: 🚀 Lancer le playbook Ansible
         run: ansible-playbook ansible/site.yml -i ansible/hosts

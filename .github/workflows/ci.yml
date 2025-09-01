@@ -9,12 +9,12 @@ on:
   pull_request:
 
 jobs:
-  ci-checks:
-    name: Vérifications CI
-    runs-on: self-hosted
+  full-ci:
+    name: Vérifications Ansible + Terraform + Frontend
+    runs-on: ubuntu-latest
 
     steps:
-      - name: 🔄 Checkout
+      - name: 🔄 Checkout du dépôt
         uses: actions/checkout@v3
 
       - name: 🛠 Installer outils
@@ -23,16 +23,26 @@ jobs:
           sudo apt install -y ansible terraform npm docker.io
           sudo systemctl start docker
 
-      - name: ✅ Ansible Syntax Check
-        run: ansible-playbook ansible/site.yml --syntax-check
+      # ✅ Ansible — Syntax Check + Dry-run
+      - name: Vérification Ansible
+        run: |
+          ansible-playbook ansible/site.yml --syntax-check
+          ansible-playbook ansible/site.yml --check
 
-      - name: 🔍 Terraform Validation
+      # 🔍 Terraform — Init + Validate + Plan
+      - name: Vérification Terraform
         run: |
           terraform -chdir=terraform init -input=false
           terraform -chdir=terraform validate
+          terraform -chdir=terraform plan -input=false
 
-      - name: 🧪 Tests Jest
+      # 🧪 Jest — Tests frontend
+      - name: Tests unitaires frontend
         run: |
           cd la_manu_front
           npm install
-          npm run test --
+          npm run test -- --ci
+
+      # 🐳 Docker — Build image frontend
+      - name: Build image Docker frontend
+        run: docker build -t la_manu_front:test la_manu_front
