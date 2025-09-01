@@ -47,7 +47,7 @@ jobs:
 
       # Terraform — Plan ciblé pour VM
       - name: Vérification plan VM Ubuntu
-        working-directory: terraform
+        working-directory: terraform2112
         run: |
           terraform init -input=false
           terraform validate
