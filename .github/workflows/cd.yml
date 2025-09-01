@@ -1,34 +1,29 @@
-name: Déploiement continu (CD)
+name: Déploiement continu
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CI Infrastructure"]
+    types:
+      - completed
 
 jobs:
   deploy:
-    name: Déployer avec Ansible
+    name: Déploiement Ansible
     runs-on: self-hosted
 
     steps:
-      - name:  Cloner le dépôt
+      - name: 🔄 Checkout
         uses: actions/checkout@v3
 
-      - name:  Déchiffrer la clé SSH privée
+      - name: 🔐 Déchiffrer clé SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name:  Ajouter le serveur au known_hosts
-        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: 🛠 Installer Ansible
+        run: sudo apt update && sudo apt install -y ansible
 
-      - name:  Installer Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
-
-      - name: 🚀 Lancer le playbook Ansible
-        working-directory: ansible
-        run: |
-          ansible-playbook -i hosts site.yml
+      - name: 🚀 Lancer le playbook
+        run: ansible-playbook ansible/site.yml -i ansible/hosts
