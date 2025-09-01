@@ -11,7 +11,7 @@ on:
 jobs:
   ci-checks:
     name: Vérifications CI
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: 🔄 Checkout
