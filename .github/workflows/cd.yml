@@ -4,36 +4,35 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:  # Permet de déclencher manuellement le déploiement
 
 jobs:
   deploy:
     name: Déployer avec Ansible
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Cloner le dépôt
+      - name: 📦 Cloner le dépôt
         uses: actions/checkout@v3
 
-      - name: Déchiffrer la clé SSH privée
+      - name: 🔐 Déchiffrer la clé SSH privée
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-      - name: Ajouter le serveur au known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      - name: 🧠 Ajouter le serveur au known_hosts
+        run: ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Vérifier la connexion SSH
-        run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ✅ Connexion SSH OK"
+      - name: 🧪 Vérifier la connexion SSH
+        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ✅ Connexion SSH OK"
 
-      - name: Installer Ansible
+      - name: 🛠 Installer Ansible
         run: |
           sudo apt update
           sudo apt install -y ansible
 
-      - name: Lancer le playbook Ansible avec logs détaillés
+      - name: 🚀 Lancer le playbook Ansible avec logs détaillés
         working-directory: ansible
         run: |
           ansible-playbook -i hosts site.yml -u ${{ secrets.SSH_USER }} --private-key ~/.ssh/id_rsa -vvv
