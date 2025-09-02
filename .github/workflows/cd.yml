@@ -9,7 +9,7 @@ on:
 jobs:
   deploy:
     name: Déployer avec Ansible
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: 📦 Cloner le dépôt
