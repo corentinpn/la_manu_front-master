@@ -1,4 +1,4 @@
-name: CI Infrastructure complète
+name: CI Infrastructure
 
 on:
   push:
@@ -13,62 +13,44 @@ on:
       - "la_manu_front/**"
 
 jobs:
-  full-ci:
-    name: Test complet Ansible + Terraform + Jest + Docker
+  ci-checks:
+    name: Vérifications CI
     runs-on: self-hosted
 
     steps:
-      - name: Checkout du dépôt
+      - name:  Checkout du dépôt
         uses: actions/checkout@v3
 
-      - name: Installer Ansible, Terraform, Node.js et Docker
+      - name:  Installer les outils
         run: |
           sudo apt update
           sudo apt install -y ansible terraform npm docker.io
           sudo systemctl start docker
           sudo usermod -aG docker $USER || true
 
-      - name: Check syntaxe Ansible
+      - name:  Vérifier syntaxe Ansible
         working-directory: ansible
         run: ansible-playbook -i hosts site.yml --syntax-check
 
-      - name: Dry-run Ansible (--check)
+      - name:  Dry-run Ansible
         working-directory: ansible
         run: ansible-playbook -i hosts site.yml --check --diff
 
-      - name: Init + Plan Terraform global
+      - name:  Terraform Init + Plan
         working-directory: terraform
         run: |
           terraform init -input=false
           terraform validate
           terraform plan -input=false
 
-      - name: Vérification plan VM Ubuntu
-        working-directory: terraform2112
-        run: |
-          terraform init -input=false
-          terraform validate
-          terraform plan -input=false -target=virtualbox_vm.ubuntu_vm
-
-      - name: Install dépendances front
+      - name:  Installer dépendances front
         working-directory: la_manu_front
         run: npm install
 
-      - name: Lancer les tests Jest
+      - name:  Lancer les tests Jest
         working-directory: la_manu_front
         run: npm run test -- --ci
 
-      - name: Build image Docker Front
+      - name:  Build image Docker Front
         working-directory: la_manu_front
         run: docker build -t la_manu_front:test .
-
-  create_simple_vm:
-    name: Création VM Debian
-    runs-on: self-hosted
-
-    steps:
-      - name: Cloner le dépôt
-        uses: actions/checkout@v3
-
-      - name: Créer la VM Debian
-        run: bash scripts/create_vm.sh
