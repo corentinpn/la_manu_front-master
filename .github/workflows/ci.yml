@@ -8,29 +8,34 @@ on:
 
 jobs:
   build:
-    name:  Self-hosted CI Pipeline
+    name: Self-hosted CI Pipeline
     runs-on: self-hosted
 
     steps:
       - name:  Checkout code
         uses: actions/checkout@v3
 
-      - name:  Run Unit Tests (pytest)
+      - name:  Setup Python environment
         run: |
-          python -m venv venv
+          sudo apt update
+          sudo apt install -y python3 python3-venv python3-pip
+          python3 -m venv venv
           source venv/bin/activate
           pip install -r requirements.txt
+
+      - name:  Run Unit Tests (pytest)
+        run: |
+          source venv/bin/activate
           pytest --maxfail=1 --disable-warnings
 
-      # Pour Node.js / Jest, décommente ceci :
+      # Pour Node.js / Jest :
       # - name:  Run Unit Tests (jest)
       #   run: |
       #     npm install
       #     npm test
 
       - name:  Build Docker image
-        run: |
-          docker build -t my-app:latest .
+        run: docker build -t my-app:latest .
 
       - name:  Push image → local registry
         run: |
