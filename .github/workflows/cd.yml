@@ -1,36 +1,29 @@
-name: Déploiement Ansible
+name: Pipeline CD
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
   deploy:
-    name: Déploiement avec Ansible
+    name:  Self-hosted CD Pipeline
     runs-on: self-hosted
 
     steps:
-      - name:  Checkout du dépôt
+      - name:  Checkout code
         uses: actions/checkout@v3
 
-      - name:  Déchiffrer la clé SSH
+      - name:  Terraform init & apply → VM (VirtualBox Ubuntu)
+        working-directory: ./infra/terraform
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          terraform init
+          terraform apply -auto-approve
 
-      - name:  Vérifier la connexion SSH
-        run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "echo ✅ Connexion SSH OK"
-
-      - name:  Installer Ansible
+      - name:  Ansible provision VM
+        working-directory: ./infra/ansible
         run: |
-          sudo apt update
-          sudo apt install -y ansible
+          ansible-playbook -i inventory/prod.ini provision.yml
 
-      - name:  Lancer le playbook Ansible
-        working-directory: ansible
+      - name:  Ansible deploy (Docker image + Compose)
+        working-directory: ./infra/ansible
         run: |
-          ansible-playbook -i hosts site.yml -u ${{ secrets.SSH_USER }} --private-key ~/.ssh/id_rsa -vvv
+          ansible-playbook -i inventory/prod.ini deploy.yml

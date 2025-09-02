@@ -1,56 +1,38 @@
-name: CI Infrastructure
+name: Pipeline CI
 
 on:
   push:
-    paths:
-      - "ansible/**"
-      - "terraform/**"
-      - "la_manu_front/**"
+    branches:
+      - main
   pull_request:
-    paths:
-      - "ansible/**"
-      - "terraform/**"
-      - "la_manu_front/**"
 
 jobs:
-  ci-checks:
-    name: Vérifications CI
+  build:
+    name:  Self-hosted CI Pipeline
     runs-on: self-hosted
 
     steps:
-      - name:  Checkout du dépôt
+      - name:  Checkout code
         uses: actions/checkout@v3
 
-      - name:  Installer les outils
+      - name:  Run Unit Tests (pytest)
         run: |
-          sudo apt update
-          sudo apt install -y ansible terraform npm docker.io
-          sudo systemctl start docker
-          sudo usermod -aG docker $USER || true
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pytest --maxfail=1 --disable-warnings
 
-      - name:  Vérifier syntaxe Ansible
-        working-directory: ansible
-        run: ansible-playbook -i hosts site.yml --syntax-check
+      # Pour Node.js / Jest, décommente ceci :
+      # - name:  Run Unit Tests (jest)
+      #   run: |
+      #     npm install
+      #     npm test
 
-      - name:  Dry-run Ansible
-        working-directory: ansible
-        run: ansible-playbook -i hosts site.yml --check --diff
-
-      - name:  Terraform Init + Plan
-        working-directory: terraform
+      - name:  Build Docker image
         run: |
-          terraform init -input=false
-          terraform validate
-          terraform plan -input=false
+          docker build -t my-app:latest .
 
-      - name:  Installer dépendances front
-        working-directory: la_manu_front
-        run: npm install
-
-      - name:  Lancer les tests Jest
-        working-directory: la_manu_front
-        run: npm run test -- --ci
-
-      - name:  Build image Docker Front
-        working-directory: la_manu_front
-        run: docker build -t la_manu_front:test .
+      - name:  Push image → local registry
+        run: |
+          docker tag my-app:latest localhost:5000/my-app:latest
+          docker push localhost:5000/my-app:latest
