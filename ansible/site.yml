@@ -1,0 +1,22 @@
+- name: Configuration de la VM avec Ansible
+  hosts: local
+  become: true
+
+  tasks:
+    - name: Installer nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Créer une bannière MOTD personnalisée
+      copy:
+        dest: /etc/motd
+        content: |
+          Cette machine est configurée automatiquement avec Ansible
+
+    - name: S'assurer que nginx est démarré et activé
+      service:
+        name: nginx
+        state: started
+        enabled: true

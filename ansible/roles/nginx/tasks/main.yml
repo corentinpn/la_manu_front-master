@@ -1,0 +1,20 @@
+---
+# tasks file for roles/nginx
+---
+- name: Installer nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+
+- name: Créer une bannière MOTD personnalisée
+  copy:
+    dest: /etc/motd
+    content: |
+      Machine gérée par Ansible dans un rôle
+
+- name: S'assurer que nginx est démarré et activé
+  service:
+    name: nginx
+    state: started
+    enabled: true
